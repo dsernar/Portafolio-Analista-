@@ -1,0 +1,186 @@
+---
+title: "Análisis de Ventas"
+author: "Dayana Serna Restrepo"
+date: "2025-09-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Introducción
+
+Este reporte analiza un dataset de ventas para extraer KPIs clave, tendencias de ventas, comparar desempeño por región y categoría, y resaltar los productos más vendidos. Este análisis de ventas examina un dataset de 1000 transacciones.
+
+**Hallazgos principales:**
+- La región Sur y Este concentran la mayor parte de las ventas totales.
+
+- La categoría Hogar genera el mayor ingreso, mientras que Ropa y Alimentos
+lideran por volumen de unidades vendidas.
+
+- Los top 5 productos más vendidos representan una porción significativa de las ventas y deben considerarse estratégicos para inventario y promociones.
+
+- Se observan picos y fluctuaciones mensuales, indicando posibles patrones estacionales que pueden aprovecharse para campañas de marketing.
+
+- La región Sur tiene el mayor valor promedio por transacción, lo que sugiere clientes que compran productos de mayor valor.
+
+Este resumen proporciona una visión rápida del desempeño de ventas y sirve como base para la toma de decisiones estratégicas.
+
+## Cargar librerías y datos
+
+```{r cargar_librerias}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+```
+
+```{r importar_datos}
+ventas <- read.csv(file.choose())
+```
+
+```{r explorar_datos}
+# Visualizar las primeras filas
+head(ventas)
+
+# Resumen estadístico de todas las columnas
+summary(ventas)
+```
+
+## KPIs GENERALES
+
+```{r kpis_generales}
+# Ventas totales
+total_ventas <- sum(ventas$Ventas)
+cat("Ventas totales:", total_ventas, "\n")
+
+# Promedio de ventas por transacción
+promedio_ventas <- mean(ventas$Ventas)
+cat("Promedio de ventas por transacción:", promedio_ventas, "\n")
+
+# Total de unidades vendidas
+total_unidades <- sum(ventas$Unidades)
+cat("Total de unidades vendidas:", total_unidades, "\n")
+
+# Precio promedio por unidad
+precio_unitario <- mean(ventas$Ventas/ventas$Unidades)
+cat("Precio promedio por unidad:", precio_unitario, "\n")
+```
+
+Estos indicadores permiten ver la magnitud de las ventas, el comportamiento promedio por transacción y el valor promedio por unidad vendida.
+
+## Ventas por región
+
+```{r ventas_region}
+ventas_region <- ventas %>% 
+  group_by(Region) %>% 
+  summarise(Ventas_Totales = sum(Ventas))
+
+ventas_region
+```
+
+```{r grafico_ventas_region}
+ggplot(ventas_region, aes(x = Region, y = Ventas_Totales, fill = Region)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Ventas Totales por Región", x = "Región", y = "Ventas") +
+  theme_minimal()
+```
+
+## Ventas por categoría
+
+```{r ventas_categoria}
+ventas_categoria <- aggregate(Ventas ~ Categoria, data = ventas, sum)
+ventas_categoria
+```
+
+```{r grafico_ventas_categoria}
+ggplot(ventas_categoria, aes(x = Categoria, y = Ventas, fill = Categoria)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Ventas Totales por Categoría", x = "Categoría", y = "Ventas") +
+  theme_minimal()
+```
+
+## Ventas por categoría y región
+
+```{r ventas_cat_region}
+ventas_cat_region <- aggregate(Ventas ~ Categoria + Region, data = ventas, sum)
+
+ggplot(ventas_cat_region, aes(x = Region, y = Ventas, fill = Categoria)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Ventas por Región y Categoría", x = "Región", y = "Ventas") +
+  theme_minimal()
+```
+
+## Evolución de ventas en el tiempo
+
+```{r evolucion_ventas}
+ventas$Fecha <- as.Date(ventas$Fecha)
+ventas_mes <- aggregate(Ventas ~ format(Fecha, "%Y-%m"), data = ventas, sum)
+names(ventas_mes) <- c("Mes", "Ventas")
+ventas_mes
+```
+
+```{r grafico_tendencia_mensual}
+ggplot(ventas_mes, aes(x = Mes, y = Ventas, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point(color = "red") +
+  labs(title = "Ventas Totales por Mes", x = "Mes", y = "Ventas") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Top 5 productos más vendidos
+
+```{r top_productos}
+top_productos <- aggregate(Ventas ~ Producto, data = ventas, sum) %>%
+  arrange(desc(Ventas)) %>%
+  head(5)
+
+top_productos
+```
+
+Estos son los productos que más ingresos generan y pueden considerarse prioritarios para estrategias comerciales.
+
+## Categoría con mayor número de unidades vendidas
+
+```{r top_categoria_unidades}
+top_categoria_unidades <- aggregate(Unidades ~ Categoria, data = ventas, sum) %>%
+  arrange(desc(Unidades))
+
+top_categoria_unidades
+```
+
+## Región con mayor venta promedio por transacción
+
+```{r region_promedio}
+region_promedio <- aggregate(Ventas ~ Region, data = ventas, mean) %>%
+  arrange(desc(Ventas))
+
+region_promedio
+```
+
+## Conclusiones y Observaciones
+
+**Regiones con mejor desempeño:** Las regiones con mayores ventas totales son Sur y Este. Esto indica que son los mercados más fuertes y deberían ser prioritarios para estrategias de marketing y ventas.
+
+**Categorías más rentables:** La categoría con mayores ventas totales es Hogar, seguida de Electrónica y Ropa. Por volumen de unidades vendidas, Ropa y Alimentos lideran. Esto ayuda a identificar qué productos generan más ingresos y cuáles se venden más en cantidad.
+
+**Productos estrella:** Los top 5 productos más vendidos (en ventas monetarias) son:
+- Producto 18
+- Producto 11
+- Producto 10
+- Producto 9
+- Producto 17
+
+Estos productos son clave para la planificación de inventario y campañas de promoción.
+
+**Tendencia de ventas en el tiempo:** El análisis mensual muestra fluctuaciones en las ventas, con algunos picos evidentes en ciertos meses. Esto permite identificar estacionalidades y planificar mejor la producción o promociones.
+
+**Promedio de venta por transacción:** La región con mayor venta promedio por transacción es Sur, seguida de Este y Oeste. Esto indica que ciertas regiones compran productos de mayor valor por venta.
+
+**Observaciones adicionales:**
+- Es recomendable monitorear las categorías con menor desempeño para detectar oportunidades de mejora.
+- Los productos más vendidos deben tener stock suficiente para evitar quiebres de inventario.
+- Se observan patrones de ventas que podrían aprovecharse para campañas de marketing estacional.
+
+Este análisis puede ser usado como base para futuras estrategias de ventas y promoción por región y categoría.
