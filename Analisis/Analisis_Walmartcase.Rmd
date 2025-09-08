@@ -1,0 +1,257 @@
+---
+title: "Análisis y Predicción de Ventas Walmart"
+author: "Dayana Serna Restrepo"
+date: "``"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(forecast)
+library(scales)
+library(ggfortify)
+```
+
+## Planteamiento
+
+Este proyecto analiza los datos de ventas semanales de Walmart con los dataset `train.csv` y `stores.csv`
+Se busca explorar el comportamiento de las ventas, identificar patrones por tienda y en el tiempo, y generar una predicción para las próximas semanas utilizando un modelo de series temporales.
+El dataset incluye:
+
+- `Store`: Identificador de la tienda  
+- `Dept`: Departamento dentro de la tienda  
+- `Date`: Semana de referencia  
+- `Weekly_Sales`: Ventas semanales   
+- `IsHoliday`: Indica si la semana fue festiva 
+
+---
+
+## Carga y limpieza de datos
+
+```{r}
+#Cargamos el csv
+walmart <- read.csv(file.choose())
+stores <- read.csv(file.choose())
+
+# Convertimos columna de fecha
+walmart$Date <- as.Date(walmart$Date, format="%Y-%m-%d")
+
+#Visualizamos la data
+str(walmart)
+
+# Eliminamos registros con ventas negativas
+walmart <- walmart %>% filter(Weekly_Sales >= 0)
+
+## Unimos con stores.csv
+data_stores <- walmart %>%
+  inner_join(stores, by="Store")
+
+head(data_stores)
+
+# Vista previa
+head(walmart)
+```
+
+---
+
+## Ventas Totales por Tienda
+
+```{r}
+ventas_tienda <- walmart %>%
+  group_by(Store) %>%
+  summarise(total_sales = sum(Weekly_Sales)) %>%
+  arrange(desc(total_sales))
+
+ventas_top15 <- ventas_tienda %>% head(15)
+
+ggplot(ventas_top15, aes(x=reorder(factor(Store), -total_sales), y=total_sales, fill=total_sales)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_gradient(low="skyblue", high="steelblue") +
+  labs(title="Top 15 Tiendas con Más Ventas", x="Tienda", y="Ventas Totales") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face="bold", hjust=0.5, size=16),
+    axis.text.x = element_text(angle=45, hjust=1)
+  ) +
+  scale_y_continuous(labels = scales::comma)
+```
+
+---
+
+**Observación:**  
+Se observa una marcada concentración de ventas en unas pocas tiendas (las de la izquierda), que superan los 250 millones en ventas totales, mientras que otras generan menos de 100 millones. Esto sugiere diferencias estructurales importantes entre las sucursales, posiblemente asociadas a ubicación, tamaño o mix de productos.
+
+---
+
+## Evolución de Ventas en el Tiempo (Todas las Tiendas)
+
+```{r}
+ventas_fecha <- walmart %>%
+  group_by(Date) %>%
+  summarise(total_sales = sum(Weekly_Sales))
+
+ggplot(ventas_fecha, aes(x=Date, y=total_sales)) +
+  geom_line(color="darkgreen", size=1) +
+  geom_point(color="red", size=1.5) +
+  labs(title="Evolución de Ventas Semanales",
+       x="Fecha",
+       y="Ventas Totales") +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5, size=16)) +
+  scale_y_continuous(labels = comma)
+```
+
+---
+
+**Observación:**  
+La serie temporal muestra un comportamiento relativamente estable en las ventas semanales, con un rango típico entre 40 y 55 millones. Sin embargo, se destacan picos muy marcados en fechas específicas (finales de 2010 y 2011), probablemente asociados a temporadas festivas como Acción de Gracias o Navidad, lo que confirma la fuerte influencia de los periodos de alto consumo en Walmart.
+
+---
+
+## Distribución de Ventas por Departamento (Top 10)
+
+```{r}
+dept_labels <- c(
+  "2"="Electrónica", 
+  "8"="Alimentos", 
+  "13"="Limpieza y Hogar",
+  "38"="Deportes",
+  "40"="Ropa y Accesorios",
+  "72"="Juguetes",
+  "90"="Farmacia",
+  "91"="Belleza y Cuidado",
+  "92"="Jardinería",
+  "95"="Automotriz"
+)
+
+# Top 10 departamentos con etiquetas
+ventas_depto <- walmart %>%
+  group_by(Dept) %>%
+  summarise(total_sales = sum(Weekly_Sales)) %>%
+  arrange(desc(total_sales)) %>%
+  head(10)
+
+ggplot(ventas_depto, aes(x=reorder(factor(Dept), total_sales), 
+                         y=total_sales, fill=total_sales)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_gradient(low="orange", high="darkred") +
+  labs(title="Top 10 Departamentos con Más Ventas",
+       x="Departamento",
+       y="Ventas Totales") +
+  scale_x_discrete(labels = dept_labels) +  # reemplaza los números por nombres
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face="bold", hjust=0.5, size=16),
+    axis.text.x = element_text(angle=45, hjust=1)
+  ) +
+  scale_y_continuous(labels = scales::comma)
+```
+
+---
+
+**Observación:**  
+Los departamentos de Jardinería y Automotriz lideran las ventas totales, superando los 400 millones cada uno. Otros departamentos relevantes son Deportes, Juguetes y Ropa y Accesorios, que muestran una fuerte contribución al ingreso. En contraste, áreas como Belleza y Cuidado y Limpieza y Hogar generan un volumen menor. Esto permite identificar cuáles líneas de negocio son estratégicas y cuáles podrían requerir impulso comercial.
+
+---
+
+## Relación entre Ventas y Tipo de Tienda
+```{r}
+ventas_tipo <- data_stores %>%
+  group_by(Type) %>%
+  summarise(promedio_ventas = mean(Weekly_Sales))
+
+ggplot(ventas_tipo, aes(x=Type, y=promedio_ventas, fill=Type)) +
+  geom_col(show.legend = FALSE) +
+  labs(title="Ventas Promedio por Tipo de Tienda",
+       x="Tipo de Tienda", y="Promedio de Ventas Semanales") +
+  theme_minimal(base_size=14)
+```
+---
+
+**Observación:**
+El Tipo A registra el mayor nivel de ventas promedio semanal, seguido de los tipos B y C. Esto sugiere que las tiendas tipo A concentran un mayor volumen de clientes e ingresos.
+
+---
+
+## Relación entre Tamaño de Tienda y Ventas
+```{r}
+ggplot(data_stores, aes(x=Size, y=Weekly_Sales, color=Type)) +
+  geom_point(alpha=0.4) +
+  geom_smooth(method="lm", se=FALSE, color="black") +
+  labs(title="Relación entre Tamaño de Tienda y Ventas",
+       x="Tamaño de Tienda", y="Ventas Semanales") +
+  theme_minimal(base_size=14)
+```
+---
+
+**Observación:**
+Existe una relación positiva: en general, las tiendas de mayor tamaño registran más ventas. Sin embargo, no es el único factor, ya que también influye el tipo de tienda y su localización.
+
+---
+
+## Serie de Tiempo y Predicción Tienda 1
+
+```{r}
+store1 <- walmart %>% filter(Store == 1) %>%
+  group_by(Date) %>%
+  summarise(total_sales = sum(Weekly_Sales))
+
+# Serie de tiempo (52 semanas por año)
+ts_store1 <- ts(store1$total_sales, frequency=52)
+
+# Graficar serie
+autoplot(ts_store1) +
+  labs(title="Serie de Tiempo - Tienda 1",
+       x="Semana",
+       y="Ventas") +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5, size=16))
+
+# Modelo ARIMA
+fit <- auto.arima(ts_store1)
+pred <- forecast(fit, h=12)
+
+# Graficar predicción
+autoplot(pred) +
+  labs(title="Predicción de Ventas (12 semanas) - Tienda 1",
+       x="Tiempo",
+       y="Ventas") +
+  theme_minimal(base_size=14) +
+  theme(plot.title = element_text(face="bold", hjust=0.5, size=16))
+```
+
+---
+
+**Observación:**  
+El modelo ARIMA proyecta que las ventas de la Tienda 1 se mantendrán dentro de un rango similar al histórico, con picos esperados en ciertas semanas. El área azul representa el intervalo de confianza de la predicción, mostrando la incertidumbre creciente a medida que se avanza en el horizonte de 12 semanas. Esto brinda una base inicial para la planificación, aunque sería recomendable integrar variables externas (festivos, desempleo, precios de combustible) para mejorar la precisión. 
+
+---
+
+## Conclusiones Finales
+
+1. **Concentración de Ventas en Tiendas Específicas**  
+   - Un reducido grupo de tiendas concentra la mayor parte de las ventas totales, superando los 250 millones cada una.  
+   - Esto sugiere diferencias en ubicación, tamaño y perfil de clientes, lo que las convierte en puntos estratégicos para promociones y campañas.  
+
+2. **Estacionalidad y Picos de Demanda**  
+   - La evolución semanal de las ventas muestra estabilidad en la mayor parte del año, con un rango de 40–55 millones.  
+   - Sin embargo, aparecen **picos muy marcados en temporadas festivas** como Acción de Gracias y Navidad, confirmando que Walmart depende fuertemente del consumo estacional.  
+
+3. **Departamentos Estratégicos**  
+   - Los departamentos de Jardinería y Automotriz lideran las ventas, con más de 400 millones cada uno.  
+   - Otros departamentos clave son Deportes, Juguetes y Ropa y Accesorios, que sostienen gran parte del volumen de ingresos.  
+   - En contraste, categorías como Belleza y Cuidado o Limpieza y Hogar muestran menor aporte, representando áreas con potencial de crecimiento si se impulsan con campañas.  
+
+4. **Influencia del Tipo y Tamaño de Tienda**  
+   - Las tiendas Tipo A son las más rentables en promedio semanal, lo que refleja su mayor tamaño y capacidad de atraer clientes.  
+   - Existe una clara correlación positiva entre tamaño de tienda y ventas, aunque no es el único factor determinante; la localización y el mix de productos también influyen.  
+
+5. **Predicción de Ventas (Modelo ARIMA)**  
+   - El modelo de series temporales ARIMA proyecta que las ventas de la Tienda 1 se mantendrán en niveles similares a los históricos, con picos recurrentes en semanas específicas.  
+   - El intervalo de confianza se amplía conforme avanza el horizonte de predicción, lo que muestra la incertidumbre inherente a las estimaciones.  
+
+
+---
