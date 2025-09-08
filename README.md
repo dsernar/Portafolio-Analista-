@@ -56,11 +56,33 @@ Se utilizó **SQL** para el procesamiento de datos y **Google Looker Studio** pa
 - Es posible **desacoplar crecimiento económico de las emisiones**, pero depende de políticas energéticas y del desarrollo tecnológico.  
 - **Dinamarca y Nueva Zelanda** muestran un crecimiento económico sostenible con reducción de emisiones.  
 - **China y Perú** presentan crecimiento acompañado de mayores emisiones.  
-- El uso de **energía renovable es un factor clave** para lograr sostenibilidad.  
+- El uso de **energía renovable es un factor clave** para lograr sostenibilidad.
+
+  
+## 📌 Proyecto 3: Análisis y Predicción de Ventas Walmart
+
+**Objetivo:** Analizar ventas históricas de Walmart, explorar patrones por tienda y departamento, y realizar una predicción de ventas.  
+
+**Herramientas utilizadas:** R, RMarkdown, ggplot2, forecast  
+
+**Análisis realizado:**  
+- 📊 Ventas totales por tienda (Top 15 sucursales).  
+- 📈 Evolución semanal de las ventas.  
+- 🏷️ Top 10 departamentos con más ingresos.  
+- 🏬 Comparación de ventas por **tipo de tienda** y análisis del impacto del **tamaño de tienda**.  
+- 🔮 Predicción de ventas (modelo ARIMA, 12 semanas para la Tienda 1).  
+
+**Conclusiones principales:**  
+- Un pequeño grupo de tiendas concentra la mayoría de ventas (>250M cada una).  
+- Las ventas muestran picos en semanas festivas (Acción de Gracias y Navidad).  
+- Jardinería y Automotriz son los departamentos más relevantes en ingresos.  
+- Las tiendas **Tipo A** y de mayor tamaño muestran mejor desempeño.  
+- El modelo ARIMA proyecta ventas estables con picos recurrentes; puede mejorarse incluyendo variables externas.  
+
 
 📂 Archivos:  
 - `analisis/Analisis_Energia_CO2_SQL.pdf` → reporte en PDF con metodología y consultas SQL.  
-- [Dashboard en Looker Studio](#) *(pendiente de enlace)*.  
+- [Dashboard en Looker Studio](#) *https://lookerstudio.google.com/s/hhUnXdyarZs*.  
 
 ---
 
