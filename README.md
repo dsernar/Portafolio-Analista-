@@ -1,6 +1,7 @@
 # 📊 Portafolio de Análisis de Datos
 
-Este repositorio contiene proyectos de análisis de datos desarrollados con **R**, **SQL** , **Python** y herramientas de visualización.
+Bienvenido a mi portafolio de proyectos en análisis de datos.  
+Aquí encontrarás ejemplos de mi trabajo en **R, SQL y visualización de datos**, aplicados a distintos contextos.
 
 ---
 
@@ -58,6 +59,10 @@ Se utilizó **SQL** para el procesamiento de datos y **Google Looker Studio** pa
 - **China y Perú** presentan crecimiento acompañado de mayores emisiones.  
 - El uso de **energía renovable es un factor clave** para lograr sostenibilidad.
 
+
+📂 Archivos:  
+- `analisis/Analisis_Energia_CO2.pdf` → reporte en PDF con metodología y consultas SQL.  
+- [Dashboard en Looker Studio](#) *https://lookerstudio.google.com/s/hhUnXdyarZs*.  
   
 ## 📌 Proyecto 3: Análisis y Predicción de Ventas Walmart
 
@@ -81,8 +86,10 @@ Se utilizó **SQL** para el procesamiento de datos y **Google Looker Studio** pa
 
 
 📂 Archivos:  
-- `analisis/Analisis_Energia_CO2_SQL.pdf` → reporte en PDF con metodología y consultas SQL.  
-- [Dashboard en Looker Studio](#) *https://lookerstudio.google.com/s/hhUnXdyarZs*.  
+- `data/train.csv` → dataset.
+- `data/stores.csv` → dataset.   
+- `analisis/Analisis_Walmartcase.Rmd` → análisis reproducible en R Markdown.  
+- `analisis/Analisis_Walmartcase.html` → reporte visual con gráficos.  
 
 ---
 
